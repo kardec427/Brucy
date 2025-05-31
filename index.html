@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trabalho escolar do Brucy</title>
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      transition: background 0.4s ease, color 0.4s ease;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    :root {
+      --bg-color: #f0f4f8;
+      --text-color: #000;
+      --header-bg: #003366;
+      --button-bg: #0059b3;
+      --button-hover: #003366;
+      --control-bg: #e0eafc;
+      --popup-bg: #fff;
+      --popup-text: #111;
+    }
+    body.dark-mode {
+      --bg-color: #121212;
+      --text-color: #f0f0f0;
+      --header-bg: #1f1f1f;
+      --button-bg: #444;
+      --button-hover: #666;
+      --control-bg: #1e1e1e;
+      --popup-bg: #222;
+      --popup-text: #eee;
+    }
+
+    header {
+      background-color: var(--header-bg);
+      color: white;
+      padding: 1.2rem 1rem;
+      text-align: center;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+      font-weight: 700;
+      font-size: 1.9rem;
+      user-select: none;
+      transition: background-color 0.4s ease;
+    }
+
+    #controls {
+      display: flex;
+      justify-content: center;
+      gap: 1.2rem;
+      padding: 1rem 1rem 1.5rem;
+      flex-wrap: wrap;
+      background-color: var(--control-bg);
+      box-shadow: inset 0 -1px 4px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.4s ease;
+    }
+
+    .linha-tempo {
+      display: flex;
+      justify-content: center;
+      gap: 1.8rem;
+      flex-wrap: wrap;
+    }
+
+    .linha-tempo button {
+      font-size: 1.1rem;
+      padding: 0.5rem 1.2rem;
+      border-radius: 12px;
+      border: none;
+      background-color: var(--button-bg);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 3px 7px rgba(0, 89, 179, 0.5);
+      user-select: none;
+    }
+    .linha-tempo button:hover,
+    .linha-tempo button:focus {
+      background-color: var(--button-hover);
+      transform: scale(1.08);
+      box-shadow: 0 5px 12px rgba(0, 89, 179, 0.7);
+      outline: none;
+    }
+
+    #controls > button:last-child {
+      font-size: 1.3rem;
+      padding: 0.6rem 1.4rem;
+      border-radius: 12px;
+      background-color: var(--button-bg);
+      box-shadow: 0 3px 7px rgba(0, 89, 179, 0.5);
+      transition: background-color 0.3s ease, transform 0.3s ease;
+      user-select: none;
+    }
+    #controls > button:last-child:hover,
+    #controls > button:last-child:focus {
+      background-color: var(--button-hover);
+      transform: scale(1.1);
+      box-shadow: 0 5px 14px rgba(0, 89, 179, 0.8);
+      outline: none;
+    }
+
+    #map {
+      height: 65vh;
+      width: 100%;
+      transition: height 0.4s ease;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      margin: 0 auto 2rem;
+      max-width: 1100px;
+    }
+
+    #grafico-container {
+      max-width: 900px;
+      margin: 0 auto 3rem;
+      padding: 0 1rem;
+      transition: transform 0.4s ease;
+    }
+
+    .leaflet-popup-content {
+      font-size: 1rem;
+      color: var(--popup-text);
+      background-color: var(--popup-bg);
+      border-radius: 10px;
+      padding: 10px 14px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+      line-height: 1.4;
+    }
+
+    .leaflet-popup-content img {
+      border-radius: 12px;
+      margin-top: 8px;
+      max-width: 100%;
+      display: block;
+      transition: transform 0.4s ease;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+    }
+      .footer {
+        font-size: 0.9rem;
+        padding: 0.8rem 1rem;
+        font-style: italic;
+        text-align: center;
+        align-items: center;
+        justify-content: center;
+        display: flex;
+        flex-direction: column; /* para empilhar as linhas */
+      }
+
+    .linha-tempo button {
+      user-select: none;
+    }
+
+    iframe {
+      border-radius: 12px;
+      margin-top: 1rem;
+      max-width: 100%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      border: none;
+    }
+
+    /* Emoji ícone maior e mais centralizado */
+    .leaflet-marker-icon span {
+      font-size: 56px !important;
+      display: block;
+      line-height: 56px;
+      user-select: none;
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    }
+    .leaflet-marker-icon:hover span {
+      transform: scale(1.15);
+    }
+
+    /* Responsividade */
+    @media (max-width: 700px) {
+      header {
+        font-size: 1.5rem;
+      }
+      #map {
+        height: 55vh;
+      }
+      #grafico-container {
+        max-width: 100%;
+        padding: 0 0.8rem;
+      }
+      .linha-tempo {
+        gap: 1rem;
+      }
+      .linha-tempo button {
+        font-size: 1rem;
+        padding: 0.4rem 0.9rem;
+      }
+      #controls > button:last-child {
+        font-size: 1.1rem;
+        padding: 0.5rem 1rem;
+      
+      }}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Trabalho Escolar do Brucy: Usinas Hidrelétricas do Brasil</h1>
+  </header>
+
+  <div id="controls">
+    <div class="linha-tempo">
+      <button onclick="atualizarAno('1980')">1980</button>
+      <button onclick="atualizarAno('2000')">2000</button>
+      <button onclick="atualizarAno('2020')">2020</button>
+      <button onclick="atualizarAno('info')">Informações Atuais</button>
+    </div>
+    <button onclick="toggleDarkMode()">🌙 Modo Escuro</button>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="grafico-container">
+    <canvas id="grafico"></canvas>
+  </div>
+  <footer>
+    <div class="footer">
+      <p>&copy; 2025 Kardec</p>
+      <p>Dados e imagens são meramente ilustrativos.</p>
+    </div>
+  </footer>
+
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const usinas = [
+      {
+        nome: "Itaipu Binacional",
+        coord: [-25.4068, -54.5882],
+        capacidade: 14000,
+        info: "Capacidade: 14.000 MW\nInauguração: 1984\nLocal: Paraná",
+        imagem: "usina_itaipu.jpg",
+        evolucao: {
+          '1980': 'Em construção',
+          '2000': 'Operando com 18 turbinas',
+          '2020': 'Modernização em andamento'
+        }
+      },
+      {
+        nome: "Belo Monte",
+        coord: [-3.0955, -51.8356],
+        capacidade: 11233,
+        info: "Capacidade: 11.233 MW\nInauguração: 2016\nLocal: Pará",
+        imagem: "usina_bm.jpg" , 
+        evolucao: {
+          '1980': 'Não planejada ainda',
+          '2000': 'Em planejamento',
+          '2020': 'Operando parcialmente'
+        }
+      },
+      {
+        nome: "Tucuruí",
+        coord: [-3.8031, -49.6456],
+        capacidade: 8370,
+        info: "Capacidade: 8.370 MW\nInauguração: 1984\nLocal: Pará",
+        imagem: "usina_tucurui.jpg",
+        evolucao: {
+          '1980': 'Em fase final de construção',
+          '2000': 'Expansão concluída',
+          '2020': 'Operando normalmente'
+        }
+      },
+      {
+        nome: "Santo Antônio",
+        coord: [-8.8148, -63.9724],
+        capacidade: 3568,
+        info: "Capacidade: 3.568 MW\nInauguração: 2012\nLocal: Rondônia",
+        imagem: "Usina_Santo.jpg",
+        evolucao: {
+          '1980': 'Não planejada ainda',
+          '2000': 'Planejamento inicial',
+          '2020': 'Operando parcialmente'
+        }
+      },
+      {
+        nome: "Jirau",
+        coord: [-8.9325, -64.8811],
+        capacidade: 3750,
+        info: "Capacidade: 3.750 MW\nInauguração: 2013\nLocal: Rondônia",
+        imagem: "Usina_jiraus.jpeg",
+        evolucao: {
+          '1980': 'Não planejada ainda',
+          '2000': 'Estudos iniciais',
+          '2020': 'Em plena operação'
+        }
+      }
+    ];
+
+    let map = L.map('map').setView([-10, -55], 4);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let markers = [];
+
+    function showMap(view) {
+      markers.forEach(marker => map.removeLayer(marker));
+      markers = [];
+
+      usinas.forEach(usina => {
+        let content = `<b>${usina.nome}</b><br>`;
+        if (view === 'info') {
+          content += `${usina.info.replace(/\n/g, '<br>')}<br><img src="${usina.imagem}" alt="Imagem da usina" width="200">`;
+        } else {
+          content += `${usina.evolucao[view]}`;
+        }
+
+        const icon = L.divIcon({
+          className: '',
+          html: '<span style="font-size: 48px;">🏭</span>',
+          iconSize: [48, 48],
+          iconAnchor: [24, 24]
+        });
+
+        const marker = L.marker(usina.coord, { icon }).addTo(map);
+        marker.bindPopup(content);
+        marker.on('click', () => {
+          map.flyTo(usina.coord, 8, { animate: true, duration: 1.5 });
+        });
+        markers.push(marker);
+      });
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    function criarGrafico() {
+      const ctx = document.getElementById('grafico').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: usinas.map(u => u.nome),
+          datasets: [{
+            label: 'Capacidade de Geração (MW)',
+            data: usinas.map(u => u.capacidade),
+            backgroundColor: 'rgba(0, 102, 204, 0.6)'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: 'Capacidade das Usinas Hidrelétricas'
+            }
+          }
+        }
+      });
+    }
+
+    function atualizarAno(ano) {
+      showMap(ano);
+    }
+
+    showMap('info');
+    criarGrafico();
+     /*
+                                                                            
+                                                                                   
+               ..+#=..            ...:==:.....                                     
+               -%%#*#.          ...**#*++++=+-..                                   
+               ..@%*+*.         ..*#%*++=====-*.                                   
+                 .-%#*+.        .*#%%#*+======-+..                                 
+                  ..###*...   .-@%%%#%*%##=+==**..                                 
+                    .+##*:.    .#*+%%%%@@%%%@**#..                                 
+                     .:%#*#..  .%*++==+++%%***++-.....                             
+                       .*###-:#%%#*+============%%%@%%%#+-:....     .......        
+                       ..*%#######@@%*+++****+*-.....:-+%#####*...:*#%%%@%*+:..... 
+                       .-@#%@@%%##%*#@@@@@@@@%#...     .....+###%%*==*#%%###-..... 
+                      .=@*+==++@@%#####+%#@@@@@%%:..   ..:-++=.:#%%=. ...:+%%*+.   
+                      .@%+=====+@@@%#-%@+*=%#++%@#@%:........   ..:%%:.      ..    
+                      .@#=====+@@%%+#+==*%+==#*=-=*+=#:.           ..*=            
+                    .:@@*++%==+%@%+@=*+++-@+-+%=---#+=#.             ..+..         
+                   .%@@@%#===*@@@@*#@=*@%***#=%+=--*+=#.              .=#...       
+                  .%@@%*==-=-+@@%@+*+=*@##*###%#+#+=*+#.              ..%#..       
+               ...*@@@#+=----%@@@@*+==-+@#####*%+#%#*=+%..            ..%#-.       
+               -##@@@%*+=---*@@@@*@*+===+@%###%*#+=+%+=@+             .-%#=.       
+              :%#%*#*##*+++@@@@@@%****++==%%%##%%#=-@*+%@..           .%%#+.       
+              +#%+*###%%%@@@%%########%#####%%%%%%#-%*++###..       ..-%###.       
+             .*%%*####%%#%%%%########%####**#*##**#%@%@#**#=.       .:%####=.      
+             .+%@@@%**###@%@@@@@@@%@@@@@@@@%%%%#**+*#%%%#***.       .%#%*#%%..     
+             .+%@@@#+===*@@@@@@@@@@%#++====++#%#%@@%#%++*%%#.     ..##...#+...     
+             .*%@@%*+===%@%@@@@@%*#@%#+==----@#*+=+###+===*-.    ..#:...#...       
+             .*##*++**+%%=%%@%*++++*@%#+=---=##+-=#@*+#=--+=.    .+.  ...          
+             .++*******- .=@@*++=++++*@@+=++*#*%%@@@%+++**+=.   .:                 
+             .+*##*+==*+*.%@#++==*===*%@@*###%@@%*#@@#++++=..  ...                 
+             .*%#**+==++**@##+======+*#@@@%%#*+++++%@+=**+-.                       
+              .#*++**+..:=@*++=====+#*#@%**+++===*%%@*=+*#-..                      
+               =+**++*#==*@*+=====+*+*@@#*+++==--++%@*+=#**++..                    
+               .:#+#*++**.@%+===*==+*@%@#*+++==--+*@#++%#**#*+.                    
+                 :*++=**=@%@%*===+#*@*.%#*+++==-=*#@%*###=*=+..                    
+                 ......*%%%%####%%#@-..-%*%@%#####%@+:-++%**==..                   
+            .        .-%@@%@###%**+*=...-@%###*****###*...+**+*:.                  
+                     .*%@@%****+***+=..:##@%#########**.  .:#+==+..                
+                    .#@%%%@%#*****+%: .=%%@%#*##***#**+.    .*****=.               
+                   .*@#*%%%%#####*%:   .@@@@#*****++***.     .+*++=+.              
+                   .##*++=+**##**@:.  .:@@#%@%%%%##%@%..      .=*++#%..            
+                   .#**+=++===++*@:    .@@**+++++====%.         .+##*#....         
+                   .*##++@===+++@%.    .#@#*++*++====#.         ..=###*:..         
+                   .*%@%+%===++@+       .=@**+++=*==#..           ..%##*+..        
+                   .+**%#*==++@-          -@#++=***+==.            ..####*..       
+                   ..#*===*=+#..           *%#+=====*.              ..*%###=..     
+                   ..*+***==#-.            -###*#*+=*-                .:%###*:.    
+                   .-#****=+-.             .#++#*====+.               ...%#****.   
+                 ..@%#*++=+=-.          ...#*+*##+===*:...               .%###=.   
+                .+%#*++===*@#..         ..##*==+#*+++=+++*..             ..-:.     
+              .%@%@%*+++#%+++%-         .:**+#**+++====++#=#:.                     
+  ......... ..=@#++=++##+===+=#..........*%*#*+++====--==+*#++#...... ...::......  
+  &By Copyright 2025 Kardec TM. All rights reserved.
+  */
+  </script>
+</body>
+</html>
